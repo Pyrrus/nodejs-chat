@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Chat using MEAN</title>
+	<link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
+<body>
+	<div class="chat">
+		<input type="text" class="chat-name" placeholder="Enter your name">
+
+		<div class="chat-messages">
+		</div>
+
+		<textarea class="chat-textarea" placeholder="Type your message"></textarea>
+
+		<div class="chat-status">Status: <span class="test">Idle</span></div>
+
+		<script type="text/javascript" src="http://localhost:8080/socket.io/socket.io.js"></script>
+
+		<script type="text/javascript">
+			(function() {
+				var getNode = function(s) {
+					return document.querySelector(s);
+				};
+
+				var status = getNode('.test');
+
+				var textarea = getNode('.chat-textarea');
+
+				var messages = getNode('.chat-messages')
+
+				var chatName = getNode('.chat-name');
+
+				var statusDefault = status.textContent;
+
+				setStatus = function(s) {
+					status.textContent = s;
+
+					if (s !== statusDefault) {
+						var delay = setTimeout(function() {
+								setStatus(statusDefault);
+							},3000);
+					}
+				};
+
+				try {
+					var socket = io.connect('http://localhost:8080');
+				} catch(e) {
+					// set warn to user
+				}
+
+				if (socket !== undefined) {
+
+					// listen for the pass input
+					socket.on('output', function(data) {
+						if (data.length) {
+							for (var i = 0; i < data.length; i++) {
+								var message = document.createElement('div');
+								message.setAttribute('class', 'chat-message');
+
+								message.textContent = data[i].name + ": " + data[i].message;
+								
+								messages.appendChild(message);
+
+								messages.insertBefore(message, messages.firstChild)
+							}
+						}
+					});
+
+					// Listen for a status
+					socket.on('status', function(data) {
+						setStatus((typeof data === 'object') ? data.message: data);
+
+						if(data.clear == true) {
+							textarea.value = '';
+						}
+
+					});
+
+					// listen for keydown
+					textarea.addEventListener('keydown', function(event) {
+						var self = this;
+						var name = chatName.value;
+
+						if (event.which === 13 && event.shiftKey === false) {
+							console.log("SEND");
+							socket.emit('input', {
+								name:name,
+								message: self.value
+							});
+
+							event.preventDefault();
+						}
+					})
+				}
+			})();
+
+		</script>
+	</div>
+</body>
+</html>
